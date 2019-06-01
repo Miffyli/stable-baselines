@@ -1032,7 +1032,6 @@ class DDPG(OffPolicyRLModel):
                            data=data,
                            params=params_to_save)
 
-
     @classmethod
     def load(cls, load_path, env=None, **kwargs):
         data, params = cls._load_from_file(load_path)

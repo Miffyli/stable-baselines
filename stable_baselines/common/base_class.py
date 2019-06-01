@@ -381,7 +381,7 @@ class BaseRLModel(ABC):
         elif isinstance(load_path_or_dict, list):
             warnings.warn("Warning: Loading model parameters from a list. This has been replaced " +
                           "with parameter dictionaries with variable names and parameters. " +
-                          "If you are loading from a file, consider re-saving the file.") 
+                          "If you are loading from a file, consider re-saving the file.")
             # Assume `load_path_or_dict` is list of ndarrays.
             # Create param dictionary assuming the parameters are in same order
             # as _get_parameter_list returns them.
