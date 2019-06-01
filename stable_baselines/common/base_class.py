@@ -357,7 +357,7 @@ class BaseRLModel(ABC):
         """
         pass
 
-    def load_parameters(self, load_path):
+    def load_parameters(self, load_path_or_dict):
         """
         Load model parameters from a file or a dictionary
 
@@ -375,19 +375,19 @@ class BaseRLModel(ABC):
             self._setup_load_operations()
 
         params = None
-        if isinstance(load_path, dict):
-            # Assume `load_path` is dict of variable.name -> ndarrays we want to load
-            params = load_path
-        elif isinstance(load_path, list):
+        if isinstance(load_path_or_dict, dict):
+            # Assume `load_path_or_dict` is dict of variable.name -> ndarrays we want to load
+            params = load_path_or_dict
+        elif isinstance(load_path_or_dict, list):
             warnings.warn("Warning: Loading model parameters from a list. This has been replaced " +
                           "with parameter dictionaries with variable names and parameters. " +
                           "If you are loading from a file, consider re-saving the file.") 
-            # Assume `load_path` is list of ndarrays.
+            # Assume `load_path_or_dict` is list of ndarrays.
             # Create param dictionary assuming the parameters are in same order
             # as _get_parameter_list returns them.
             params = dict()
             for i, param_name in enumerate(self._param_load_ops.keys()):
-                params[param_name] = load_path[i]
+                params[param_name] = load_path_or_dict[i]
         else:
             # Assume a filepath or file-like.
             # Use existing deserializer to load the parameters
