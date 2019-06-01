@@ -367,7 +367,7 @@ class BaseRLModel(ABC):
 
         This does not load agent's hyper-parameters.
 
-        :param load_path: (str or file-like or dict) Save parameter location
+        :param load_path_or_dict: (str or file-like or dict) Save parameter location
             or dict of parameters as variable.name -> ndarrays to be loaded.
         """
         # Make sure we have assign ops
