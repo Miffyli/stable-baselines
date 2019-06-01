@@ -43,6 +43,7 @@ class BaseRLModel(ABC):
         self.graph = None
         self.sess = None
         self.params = None
+        self._param_load_ops = None
 
         if env is not None:
             if isinstance(env, str):
@@ -152,6 +153,38 @@ class BaseRLModel(ABC):
                              "set_env(self, env) method.")
         if seed is not None:
             set_global_seeds(seed)
+
+    @abstractmethod
+    def get_parameters(self):
+        """
+        Get tensorflow Variables of model's parameters
+
+        This includes all variables necessary for continuing training (saving / loading).
+
+        :return: (list) List of tensorflow Variables
+        """
+        pass
+
+    def _setup_load_operations(self):
+        """
+        Create tensorflow operations for loading model parameters
+
+        :param params: (List) List of tensorflow variables for which
+            to create the assign ops.
+        """
+        # Assume tensorflow graphs are static -> check 
+        # that we only call this function once
+        if self._param_load_ops is not None:
+            raise RuntimeError("Parameter load operations have already been created")
+        # For each loadable parameter, create appropiate
+        # placeholder and an assign op, and store them to 
+        # self.load_param_ops as list of (placeholder, assign)
+        loadable_parameters = self.get_parameters()
+        self._param_load_ops = []
+        with self.graph.as_default():
+            for param in loadable_parameters:
+                placeholder = tf.placeholder(dtype=param.dtype, shape=param.shape)
+                self._param_load_ops.append((placeholder, param.assign(placeholder)))
 
     @abstractmethod
     def _get_pretrain_placeholders(self):
@@ -311,6 +344,37 @@ class BaseRLModel(ABC):
         :return: (np.ndarray) the model's action probability
         """
         pass
+
+    def load_parameters(self, load_path):
+        """
+        Load model parameters from a file or a list
+
+        Note: This does not load agent's hyper-parameters.
+
+        :param load_path: (str or file-like or list) Save parameter location
+            or list of parameters as ndarrays to be loaded.
+        """
+        params = None
+        if isinstance(load_path, list):
+            # Assume `load_path` is list of ndarrays we want to load
+            params = load_path
+        else:
+            # Assume a filepath or file-like.
+            # Use existing deserializer to load the parameters
+            _, params = BaseRLModel._load_from_file(load_path)
+
+        # Make sure we have assign ops
+        if self._param_load_ops is None:
+            self._setup_load_operations()
+
+        feed_dict = {}
+        param_update_ops = []
+        # Assume params and load_ops are in same order
+        for load_op, param in zip(self._param_load_ops, params):
+            feed_dict[load_op[0]] = param
+            # Create list of tf.assign operations
+            param_update_ops.append(load_op[1])
+        self.sess.run(param_update_ops, feed_dict=feed_dict)
 
     @abstractmethod
     def save(self, save_path):
@@ -541,6 +605,9 @@ class ActorCriticRLModel(BaseRLModel):
 
         return actions_proba
 
+    def get_parameters(self):
+        return self.params
+
     @abstractmethod
     def save(self, save_path):
         pass
@@ -560,10 +627,7 @@ class ActorCriticRLModel(BaseRLModel):
         model.set_env(env)
         model.setup_model()
 
-        restores = []
-        for param, loaded_p in zip(model.params, params):
-            restores.append(param.assign(loaded_p))
-        model.sess.run(restores)
+        model.load_parameters(params)
 
         return model
 
