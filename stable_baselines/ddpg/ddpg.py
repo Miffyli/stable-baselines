@@ -988,7 +988,7 @@ class DDPG(OffPolicyRLModel):
         warnings.warn("Warning: action probability is meaningless for DDPG. Returning None")
         return None
 
-    def get_parameters(self):
+    def _get_parameter_list(self):
         return (self.params +
                 self.target_params +
                 self.obs_rms_params +
@@ -1026,7 +1026,7 @@ class DDPG(OffPolicyRLModel):
             "policy_kwargs": self.policy_kwargs
         }
 
-        params_to_save = self.sess.run(self.get_parameters())
+        params_to_save = self.get_parameters()
 
         self._save_to_file(save_path,
                            data=data,

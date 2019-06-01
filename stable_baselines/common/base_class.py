@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 import os
 import glob
 import warnings
@@ -155,7 +156,7 @@ class BaseRLModel(ABC):
             set_global_seeds(seed)
 
     @abstractmethod
-    def get_parameters(self):
+    def _get_parameter_list(self):
         """
         Get tensorflow Variables of model's parameters
 
@@ -165,26 +166,37 @@ class BaseRLModel(ABC):
         """
         pass
 
+    def get_parameters(self):
+        """
+        Get current model parameters as dictionary of variable name -> ndarray.
+
+        :return: (dict) Dictionary of variable name -> ndarray of model's parameters.
+        """
+        parameters = self._get_parameter_list()
+        parameter_values = self.sess.run(parameters)
+        return_dictionary = dict((param.name, value) for param, value in zip(parameters, parameter_values))
+        return return_dictionary
+
     def _setup_load_operations(self):
         """
         Create tensorflow operations for loading model parameters
-
-        :param params: (List) List of tensorflow variables for which
-            to create the assign ops.
         """
-        # Assume tensorflow graphs are static -> check 
+        # Assume tensorflow graphs are static -> check
         # that we only call this function once
         if self._param_load_ops is not None:
             raise RuntimeError("Parameter load operations have already been created")
         # For each loadable parameter, create appropiate
-        # placeholder and an assign op, and store them to 
-        # self.load_param_ops as list of (placeholder, assign)
-        loadable_parameters = self.get_parameters()
-        self._param_load_ops = []
+        # placeholder and an assign op, and store them to
+        # self.load_param_ops as dict of variable.name -> (placeholder, assign)
+        loadable_parameters = self._get_parameter_list()
+        # Use OrderedDict to store order for backwards compatability with
+        # list-based params
+        self._param_load_ops = OrderedDict()
         with self.graph.as_default():
             for param in loadable_parameters:
                 placeholder = tf.placeholder(dtype=param.dtype, shape=param.shape)
-                self._param_load_ops.append((placeholder, param.assign(placeholder)))
+                # param.name is unique (tensorflow variables have unique names)
+                self._param_load_ops[param.name] = (placeholder, param.assign(placeholder))
 
     @abstractmethod
     def _get_pretrain_placeholders(self):
@@ -347,33 +359,47 @@ class BaseRLModel(ABC):
 
     def load_parameters(self, load_path):
         """
-        Load model parameters from a file or a list
+        Load model parameters from a file or a dictionary
 
-        Note: This does not load agent's hyper-parameters.
+        Dictionary keys should be tensorflow variable names, which can be obtained
+        with ``get_parameters`` function. If variable name is not included in  the dictionary,
+        it will not be updated.
 
-        :param load_path: (str or file-like or list) Save parameter location
-            or list of parameters as ndarrays to be loaded.
+        This does not load agent's hyper-parameters.
+
+        :param load_path: (str or file-like or dict) Save parameter location
+            or dict of parameters as variable.name -> ndarrays to be loaded.
         """
+        # Make sure we have assign ops
+        if self._param_load_ops is None:
+            self._setup_load_operations()
+
         params = None
-        if isinstance(load_path, list):
-            # Assume `load_path` is list of ndarrays we want to load
+        if isinstance(load_path, dict):
+            # Assume `load_path` is dict of variable.name -> ndarrays we want to load
             params = load_path
+        elif isinstance(load_path, list):
+            warnings.warn("Warning: Loading model parameters from a list. This has been replaced " +
+                          "with parameter dictionaries with variable names and parameters. " +
+                          "If you are loading from a file, consider re-saving the file.") 
+            # Assume `load_path` is list of ndarrays.
+            # Create param dictionary assuming the parameters are in same order
+            # as _get_parameter_list returns them.
+            params = dict()
+            for i, param_name in enumerate(self._param_load_ops.keys()):
+                params[param_name] = load_path[i]
         else:
             # Assume a filepath or file-like.
             # Use existing deserializer to load the parameters
             _, params = BaseRLModel._load_from_file(load_path)
 
-        # Make sure we have assign ops
-        if self._param_load_ops is None:
-            self._setup_load_operations()
-
         feed_dict = {}
         param_update_ops = []
-        # Assume params and load_ops are in same order
-        for load_op, param in zip(self._param_load_ops, params):
-            feed_dict[load_op[0]] = param
-            # Create list of tf.assign operations
-            param_update_ops.append(load_op[1])
+        for param_name, param_value in params.items():
+            placeholder, assign_op = self._param_load_ops[param_name]
+            feed_dict[placeholder] = param_value
+            # Create list of tf.assign operations for sess.run
+            param_update_ops.append(assign_op)
         self.sess.run(param_update_ops, feed_dict=feed_dict)
 
     @abstractmethod
@@ -605,7 +631,7 @@ class ActorCriticRLModel(BaseRLModel):
 
         return actions_proba
 
-    def get_parameters(self):
+    def _get_parameter_list(self):
         return self.params
 
     @abstractmethod

@@ -364,6 +364,6 @@ class ACKTR(ActorCriticRLModel):
             "policy_kwargs": self.policy_kwargs
         }
 
-        params_to_save = self.sess.run(self.get_parameters())
+        params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save)
