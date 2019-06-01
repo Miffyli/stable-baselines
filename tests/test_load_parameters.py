@@ -1,10 +1,7 @@
-import os
-
 import pytest
 import numpy as np
 
-from stable_baselines import A2C, ACER, ACKTR, DQN, PPO1, PPO2, TRPO, SAC
-from stable_baselines.common import set_global_seeds
+from stable_baselines import A2C, ACER, ACKTR, DQN, PPO1, PPO2, TRPO
 from stable_baselines.common.identity_env import IdentityEnv
 from stable_baselines.common.vec_env import DummyVecEnv
 
@@ -43,7 +40,7 @@ def test_load_parameters(request, model_class):
     # Get dictionary of current parameters
     params = model.get_parameters()
     # Modify all parameters to be random values
-    random_params = dict((param_name, np.random.random(size=param.shape)) for param_name,param in params.items())
+    random_params = dict((param_name, np.random.random(size=param.shape)) for param_name, param in params.items())
     # Update model parameters with the new zeroed values
     model.load_parameters(random_params)
     # Get new action probas
@@ -70,7 +67,8 @@ def test_load_parameters(request, model_class):
 
     # Compare results against the previous load
     new_actions_probas_list = model.action_probability(observations, actions=actions)
-    assert not np.any(np.isclose(new_actions_probas, new_actions_probas_list)), "Action probabilities did not change " \
-                                                                                "after changing model parameters (list)."
+    assert not np.any(np.isclose(new_actions_probas, new_actions_probas_list)), "Action probabilities did not " \
+                                                                                "change after changing model " \
+                                                                                "parameters (list)."
 
     del model, env
