@@ -14,6 +14,9 @@ Release 2.5.2a0 (WIP)
 - The parameter ``filter_size`` of the function ``conv`` in A2C utils now supports passing a list/tuple of two integers (height and width), in order to have non-squared kernel matrix. (@yutingsz)
 - fixed a bug where initial learning rate is logged instead of its placeholder in ``A2C.setup_model`` (@sc420)
 - fixed a bug where number of timesteps is incorrectly updated and logged in ``A2C.learn`` and ``A2C._train_step`` (@sc420)
+- added ``load_parameters`` and ``get_parameters`` for most learning algorithms.
+  With these methods, users are able to load and get parameters to/from existing model, without touching tensorflow. (@Miffyli)
+- switched to using dictionaries rather than lists when storing parameters, with tensorflow Variable names being the keys. (@Miffyli)
 
 Release 2.5.1 (2019-05-04)
 --------------------------
