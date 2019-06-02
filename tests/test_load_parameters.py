@@ -106,8 +106,8 @@ def test_load_parameters(request, model_class):
         model.load_parameters(b_io)
         b_io.close()
         new_actions_probas = model.action_probability(observations, actions=actions)
-        assert np.all(np.isclose(original_actions_probas, new_actions_probas)), "Action probabilities changed " \
-                                                                                "after load_parameters from a file-like."
+        assert np.all(np.isclose(original_actions_probas, new_actions_probas)), "Action probabilities changed after" \
+                                                                                "load_parameters from a file-like."
     finally:
         if os.path.exists(model_fname):
             os.remove(model_fname)
