@@ -170,11 +170,11 @@ class BaseRLModel(ABC):
         """
         Get current model parameters as dictionary of variable name -> ndarray.
 
-        :return: (dict) Dictionary of variable name -> ndarray of model's parameters.
+        :return: (OrderedDict) Dictionary of variable name -> ndarray of model's parameters.
         """
         parameters = self._get_parameter_list()
         parameter_values = self.sess.run(parameters)
-        return_dictionary = dict((param.name, value) for param, value in zip(parameters, parameter_values))
+        return_dictionary = OrderedDict((param.name, value) for param, value in zip(parameters, parameter_values))
         return return_dictionary
 
     def _setup_load_operations(self):
