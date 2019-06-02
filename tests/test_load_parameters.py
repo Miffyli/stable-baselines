@@ -1,3 +1,6 @@
+import os
+from io import BytesIO
+
 import pytest
 import numpy as np
 
@@ -16,7 +19,7 @@ MODEL_LIST = [
 ]
 
 @pytest.mark.parametrize("model_class", MODEL_LIST)
-def test_load_parameters(model_class):
+def test_load_parameters(request, model_class):
     """
     Test if ``load_parameters`` loads given parameters correctly (the model actually changes)
     and that the backwards compatability with a list of params works
@@ -72,10 +75,48 @@ def test_load_parameters(model_class):
                                                                                 "change after changing model " \
                                                                                 "parameters (list)."
 
+    # Test file/file-like object loading for load_parameters.
+    # Save whatever is stored in model now, assign random parameters,
+    # load parameters from file with load_parameters and check if original probabilities
+    # are restored
+    original_actions_probas = model.action_probability(observations, actions=actions)
+    model_fname = './test_model_{}.pkl'.format(request.node.name)
+
+    try:
+        # Save model to a file and file-like buffer
+        # (partly copy/paste from test_save)
+        model.save(model_fname)
+        b_io = BytesIO()
+        model.save(b_io)
+        model_bytes = b_io.getvalue()
+        b_io.close()
+
+        random_params = dict((param_name, np.random.random(size=param.shape)) for param_name, param in params.items())
+        model.load_parameters(random_params)
+        # Previous tests confirm that load_parameters works,
+        # so just right into testing loading from file
+        model.load_parameters(model_fname)
+        new_actions_probas = model.action_probability(observations, actions=actions)
+        assert np.all(np.isclose(original_actions_probas, new_actions_probas)), "Action probabilities changed " \
+                                                                                "after load_parameters from a file."
+        # Reset with random parameters again
+        model.load_parameters(random_params)
+        # Now load from file-like (copy/paste from test_save)
+        b_io = BytesIO(model_bytes)
+        model.load_parameters(b_io)
+        b_io.close()
+        new_actions_probas = model.action_probability(observations, actions=actions)
+        assert np.all(np.isclose(original_actions_probas, new_actions_probas)), "Action probabilities changed " \
+                                                                                "after load_parameters from a file-like."
+    finally:
+        if os.path.exists(model_fname):
+            os.remove(model_fname)
+
 
     # Test `exact_match` functionality of load_parameters
+    original_actions_probas = model.action_probability(observations, actions=actions)
     # Create dictionary with one variable name missing
-    truncated_random_params = dict((param_name, np.random.random(size=param.shape)) 
+    truncated_random_params = dict((param_name, np.random.random(size=param.shape))
                                    for param_name, param in params.items())
     # Remove some element
     _ = truncated_random_params.pop(list(truncated_random_params.keys())[0])
@@ -84,7 +125,7 @@ def test_load_parameters(model_class):
         model.load_parameters(truncated_random_params, exact_match=True)
     # Make sure we did not update model regardless
     new_actions_probas = model.action_probability(observations, actions=actions)
-    assert np.all(np.isclose(new_actions_probas_list, new_actions_probas)), "Action probabilities changed " \
+    assert np.all(np.isclose(original_actions_probas, new_actions_probas)), "Action probabilities changed " \
                                                                             "after load_parameters raised " \
                                                                             "RunTimeError (exact_match=True)."
 
@@ -92,7 +133,7 @@ def test_load_parameters(model_class):
     model.load_parameters(truncated_random_params, exact_match=False)
     # Also check that results changed, again
     new_actions_probas = model.action_probability(observations, actions=actions)
-    assert not np.any(np.isclose(new_actions_probas_list, new_actions_probas)), "Action probabilities did not " \
+    assert not np.any(np.isclose(original_actions_probas, new_actions_probas)), "Action probabilities did not " \
                                                                                 "change after changing model " \
                                                                                 "parameters (exact_match=False)."
 
