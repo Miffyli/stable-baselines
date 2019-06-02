@@ -357,18 +357,22 @@ class BaseRLModel(ABC):
         """
         pass
 
-    def load_parameters(self, load_path_or_dict):
+    def load_parameters(self, load_path_or_dict, exact_match=True):
         """
         Load model parameters from a file or a dictionary
 
         Dictionary keys should be tensorflow variable names, which can be obtained
-        with ``get_parameters`` function. If variable name is not included in  the dictionary,
-        it will not be updated.
+        with ``get_parameters`` function. If ``exact_match`` is True, dictionary
+        should contain keys for all model's parameters, otherwise RunTimeError
+        is raised. If False, only variables included in the dictionary will be updated.
 
         This does not load agent's hyper-parameters.
 
         :param load_path_or_dict: (str or file-like or dict) Save parameter location
             or dict of parameters as variable.name -> ndarrays to be loaded.
+        :param exact_match: (bool) If True, expects load dictionary to contain keys for
+            all variables in the model. If False, loads parameters only for variables
+            mentioned in the dictionary. Defaults to True.
         """
         # Make sure we have assign ops
         if self._param_load_ops is None:
@@ -396,11 +400,22 @@ class BaseRLModel(ABC):
 
         feed_dict = {}
         param_update_ops = []
+        # Keep track of not-updated variables
+        not_updated_variables = set(self._param_load_ops.keys())
         for param_name, param_value in params.items():
             placeholder, assign_op = self._param_load_ops[param_name]
             feed_dict[placeholder] = param_value
             # Create list of tf.assign operations for sess.run
             param_update_ops.append(assign_op)
+            # Keep track which variables are updated
+            not_updated_variables.remove(param_name)
+
+        # Check that we updated all parameters if exact_match=True
+        if exact_match and len(not_updated_variables) > 0:
+            raise RuntimeError("Load dictionary did not contain all variables. " +
+                               "Missing variables: %s" %
+                               (", ".join(not_updated_variables)))
+
         self.sess.run(param_update_ops, feed_dict=feed_dict)
 
     @abstractmethod

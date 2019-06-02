@@ -54,6 +54,7 @@ def test_load_parameters(model_class):
     comparisons = [np.all(np.isclose(new_params[key], random_params[key])) for key in random_params.keys()]
     assert all(comparisons), "Parameters of model are not the same as provided ones."
 
+
     # Now test the backwards compatibility with params being a list instead of a dict.
     # Since `get_parameters` returns a dictionary, we can not trust the ordering (prior Python 3.7),
     # we get the exact ordering from private method `_get_parameter_list()`.
@@ -70,5 +71,29 @@ def test_load_parameters(model_class):
     assert not np.any(np.isclose(new_actions_probas, new_actions_probas_list)), "Action probabilities did not " \
                                                                                 "change after changing model " \
                                                                                 "parameters (list)."
+
+
+    # Test `exact_match` functionality of load_parameters
+    # Create dictionary with one variable name missing
+    truncated_random_params = dict((param_name, np.random.random(size=param.shape)) 
+                                   for param_name, param in params.items())
+    # Remove some element
+    _ = truncated_random_params.pop(list(truncated_random_params.keys())[0])
+    # With exact_match=True, this should be an expection
+    with pytest.raises(RuntimeError):
+        model.load_parameters(truncated_random_params, exact_match=True)
+    # Make sure we did not update model regardless
+    new_actions_probas = model.action_probability(observations, actions=actions)
+    assert np.all(np.isclose(new_actions_probas_list, new_actions_probas)), "Action probabilities changed " \
+                                                                            "after load_parameters raised " \
+                                                                            "RunTimeError (exact_match=True)."
+
+    # With False, this should be fine
+    model.load_parameters(truncated_random_params, exact_match=False)
+    # Also check that results changed, again
+    new_actions_probas = model.action_probability(observations, actions=actions)
+    assert not np.any(np.isclose(new_actions_probas_list, new_actions_probas)), "Action probabilities did not " \
+                                                                                "change after changing model " \
+                                                                                "parameters (exact_match=False)."
 
     del model, env
