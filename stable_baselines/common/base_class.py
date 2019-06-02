@@ -368,6 +368,10 @@ class BaseRLModel(ABC):
 
         This does not load agent's hyper-parameters.
 
+        .. warning::
+            This function does not update trainer/optimizer variables (e.g. momentum).
+            As such training after using this function may lead to less-than-optimal results.
+
         :param load_path_or_dict: (str or file-like or dict) Save parameter location
             or dict of parameters as variable.name -> ndarrays to be loaded.
         :param exact_match: (bool) If True, expects load dictionary to contain keys for
