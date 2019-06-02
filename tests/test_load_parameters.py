@@ -16,7 +16,7 @@ MODEL_LIST = [
 ]
 
 @pytest.mark.parametrize("model_class", MODEL_LIST)
-def test_load_parameters(request, model_class):
+def test_load_parameters(model_class):
     """
     Test if ``load_parameters`` loads given parameters correctly (the model actually changes)
     and that the backwards compatability with a list of params works

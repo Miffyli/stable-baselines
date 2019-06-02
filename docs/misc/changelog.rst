@@ -16,7 +16,7 @@ Release 2.5.2a0 (WIP)
 - fixed a bug where number of timesteps is incorrectly updated and logged in ``A2C.learn`` and ``A2C._train_step`` (@sc420)
 - added ``load_parameters`` and ``get_parameters`` for most learning algorithms.
   With these methods, users are able to load and get parameters to/from existing model, without touching tensorflow. (@Miffyli)
-- switched to using dictionaries rather than lists when storing parameters, with tensorflow Variable names being the keys. (@Miffyli)
+- **important change** switched to using dictionaries rather than lists when storing parameters, with tensorflow Variable names being the keys. (@Miffyli)
 
 Release 2.5.1 (2019-05-04)
 --------------------------

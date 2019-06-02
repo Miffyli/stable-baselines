@@ -189,7 +189,7 @@ class BaseRLModel(ABC):
         # placeholder and an assign op, and store them to
         # self.load_param_ops as dict of variable.name -> (placeholder, assign)
         loadable_parameters = self._get_parameter_list()
-        # Use OrderedDict to store order for backwards compatability with
+        # Use OrderedDict to store order for backwards compatibility with
         # list-based params
         self._param_load_ops = OrderedDict()
         with self.graph.as_default():
@@ -379,9 +379,10 @@ class BaseRLModel(ABC):
             # Assume `load_path_or_dict` is dict of variable.name -> ndarrays we want to load
             params = load_path_or_dict
         elif isinstance(load_path_or_dict, list):
-            warnings.warn("Warning: Loading model parameters from a list. This has been replaced " +
+            warnings.warn("Loading model parameters from a list. This has been replaced " +
                           "with parameter dictionaries with variable names and parameters. " +
-                          "If you are loading from a file, consider re-saving the file.")
+                          "If you are loading from a file, consider re-saving the file.",
+                          DeprecationWarning)
             # Assume `load_path_or_dict` is list of ndarrays.
             # Create param dictionary assuming the parameters are in same order
             # as _get_parameter_list returns them.
@@ -391,7 +392,7 @@ class BaseRLModel(ABC):
         else:
             # Assume a filepath or file-like.
             # Use existing deserializer to load the parameters
-            _, params = BaseRLModel._load_from_file(load_path)
+            _, params = BaseRLModel._load_from_file(load_path_or_dict)
 
         feed_dict = {}
         param_update_ops = []
