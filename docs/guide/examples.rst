@@ -327,8 +327,10 @@ visualize different layers of the network or modify parameters manually.
 
 You can access original Tensorflow Variables with function ``get_parameter_list``.
 
-Following example uses these functions to implement a simple `evolution strategy <http://blog.otoro.net/2017/10/29/visual-evolution-strategies/>`_ 
-for solving ``CartPole-v1`` environment.
+Following example demonstrates reading parameters, modifying some of them and loading them to model
+by implementing `evolution strategy <http://blog.otoro.net/2017/10/29/visual-evolution-strategies/>`_ 
+for solving ``CartPole-v1`` environment. The initial guess for parameters is obtained by running
+A2C policy gradient updates on the model.
 
 .. code-block:: python
 
@@ -361,23 +363,34 @@ for solving ``CartPole-v1`` environment.
   # Create env
   env = gym.make('CartPole-v1')
   env = DummyVecEnv([lambda: env])
-  # Create policy with small network.
-  model = A2C(MlpPolicy, env, policy_kwargs={'net_arch': [8, ]})
-  # Get current parameters as the starting point.
-  # `mean_params` will be a dictionary of 
-  # variable names -> numpy arrays.
+  # Create policy with a small network
+  model = A2C(MlpPolicy, env, ent_coef=0.0, learning_rate=0.1,
+              policy_kwargs={'net_arch': [8, ]})
+
+  # Use traditional actor-critic policy gradient updates to
+  # find good initial parameters
+  model.learn(total_timesteps=5000)
+
+  # Get the parameters as the starting point for ES
   mean_params = model.get_parameters()
+
+  # Include only variables with "/pi/" (policy) or "/shared" (shared layers)
+  # in their name: Only these ones affect the action.
+  mean_params = dict((key, value) for key, value in mean_params.items()
+                     if ("/pi/" in key or "/shared" in key))
 
   for iteration in range(10):
       # Create population of candidates and evaluate them
       population = []
       for population_i in range(100):
           candidate = mutate(mean_params)
-          # Load new parameters to agent
-          model.load_parameters(candidate)
+          # Load new policy parameters to agent.
+          # Tell function that it should only update parameters
+          # we give it (policy parameters)
+          model.load_parameters(candidate, exact_match=False)
           fitness = evaluate(env, model)
           population.append((candidate, fitness))
-      # Take top 10% and take average over their parameters as next mean parameters
+      # Take top 10% and use average over their parameters as next mean parameter
       top_candidates = sorted(population, key=lambda x: x[1], reverse=True)[:10]
       mean_params = dict(
           (name, np.stack([top_candidate[0][name] for top_candidate in top_candidates]).mean(0))
