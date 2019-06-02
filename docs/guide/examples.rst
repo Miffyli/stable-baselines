@@ -320,10 +320,12 @@ Accessing and modifying model parameters
 ----------------------------------------
 
 You can access model's parameters via ``load_parameters`` and ``get_parameters`` functions, which
-use dictionaries that map variable names to NumPy arrays.
+use dictionaries that map variable names to NumPy arrays. 
 
 These functions are useful when you need to e.g. evaluate large set of models with same network structure,
 visualize different layers of the network or modify parameters manually.
+
+You can access original Tensorflow Variables with function ``get_parameter_list``.
 
 Following example uses these functions to implement a simple `evolution strategy <http://blog.otoro.net/2017/10/29/visual-evolution-strategies/>`_ 
 for solving ``CartPole-v1`` environment.

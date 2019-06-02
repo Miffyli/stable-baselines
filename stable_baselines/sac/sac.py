@@ -495,7 +495,7 @@ class SAC(OffPolicyRLModel):
 
         return actions, None
 
-    def _get_parameter_list(self):
+    def get_parameter_list(self):
         return (self.params +
                 self.target_params)
 

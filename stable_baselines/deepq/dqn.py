@@ -310,7 +310,7 @@ class DQN(OffPolicyRLModel):
 
         return actions_proba
 
-    def _get_parameter_list(self):
+    def get_parameter_list(self):
         return self.params
 
     def save(self, save_path):

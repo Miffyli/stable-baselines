@@ -988,7 +988,7 @@ class DDPG(OffPolicyRLModel):
         warnings.warn("Warning: action probability is meaningless for DDPG. Returning None")
         return None
 
-    def _get_parameter_list(self):
+    def get_parameter_list(self):
         return (self.params +
                 self.target_params +
                 self.obs_rms_params +

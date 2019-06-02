@@ -156,7 +156,7 @@ class BaseRLModel(ABC):
             set_global_seeds(seed)
 
     @abstractmethod
-    def _get_parameter_list(self):
+    def get_parameter_list(self):
         """
         Get tensorflow Variables of model's parameters
 
@@ -172,7 +172,7 @@ class BaseRLModel(ABC):
 
         :return: (OrderedDict) Dictionary of variable name -> ndarray of model's parameters.
         """
-        parameters = self._get_parameter_list()
+        parameters = self.get_parameter_list()
         parameter_values = self.sess.run(parameters)
         return_dictionary = OrderedDict((param.name, value) for param, value in zip(parameters, parameter_values))
         return return_dictionary
@@ -188,7 +188,7 @@ class BaseRLModel(ABC):
         # For each loadable parameter, create appropiate
         # placeholder and an assign op, and store them to
         # self.load_param_ops as dict of variable.name -> (placeholder, assign)
-        loadable_parameters = self._get_parameter_list()
+        loadable_parameters = self.get_parameter_list()
         # Use OrderedDict to store order for backwards compatibility with
         # list-based params
         self._param_load_ops = OrderedDict()
@@ -393,7 +393,7 @@ class BaseRLModel(ABC):
                           DeprecationWarning)
             # Assume `load_path_or_dict` is list of ndarrays.
             # Create param dictionary assuming the parameters are in same order
-            # as _get_parameter_list returns them.
+            # as `get_parameter_list` returns them.
             params = dict()
             for i, param_name in enumerate(self._param_load_ops.keys()):
                 params[param_name] = load_path_or_dict[i]
@@ -650,7 +650,7 @@ class ActorCriticRLModel(BaseRLModel):
 
         return actions_proba
 
-    def _get_parameter_list(self):
+    def get_parameter_list(self):
         return self.params
 
     @abstractmethod

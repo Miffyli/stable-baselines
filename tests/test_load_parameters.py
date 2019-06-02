@@ -59,11 +59,8 @@ def test_load_parameters(request, model_class):
 
 
     # Now test the backwards compatibility with params being a list instead of a dict.
-    # Since `get_parameters` returns a dictionary, we can not trust the ordering (prior Python 3.7),
-    # we get the exact ordering from private method `_get_parameter_list()`.
-    # Same function is used in case .pkl files store a list, so this test will also cover that
-    # scenario.
-    tf_param_list = model._get_parameter_list()
+    # Get the ordering of parameters.
+    tf_param_list = model.get_parameter_list()
     # Make random parameters negative to make sure the results should be different from
     # previous random values
     random_param_list = [-np.random.random(size=tf_param.shape) for tf_param in tf_param_list]
