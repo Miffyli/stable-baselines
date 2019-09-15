@@ -54,6 +54,7 @@ Documentation:
 - Add WaveRL project (@jaberkow)
 - Add Fenics-DRL project (@DonsetPG)
 - Fix and rename custom policy names (@eavelardev)
+- Add documentation on exporting models.
 
 
 
