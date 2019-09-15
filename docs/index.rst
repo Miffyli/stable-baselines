@@ -50,6 +50,7 @@ This toolset is a fork of OpenAI Baselines, with a major structural refactoring,
    guide/pretrain
    guide/checking_nan
    guide/save_format
+   guide/export
 
 
 .. toctree::
